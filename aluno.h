@@ -15,6 +15,8 @@ typedef struct {
     char curso[50];
     int ano;
     float media;
+    float notas[20];      // array de notas
+    int total_notas;      // quantas notas tem
 } Aluno;
 
 typedef struct {

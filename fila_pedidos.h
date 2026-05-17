@@ -13,4 +13,6 @@ typedef struct {
 
 void inicializar_fila(FilaSecretaria *f);
 void enfileirar(FilaSecretaria *f, int id);
+void desenfileirar(FilaSecretaria *f);
+
 #endif

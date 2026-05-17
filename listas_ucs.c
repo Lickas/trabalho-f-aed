@@ -1,22 +1,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "lista_ucs.h"
+#include "listas_ucs.h"
 
-UC* criar_no_uc(int codigo, char *nome) {
-    UC *novo = (UC*) malloc(sizeof(UC)); // Alocação dinâmica 
+NoUC* criar_no_uc(UC uc) {
+    NoUC* novo = (NoUC*)malloc(sizeof(NoUC));
     if (novo != NULL) {
-        novo->codigo = codigo;
-        strcpy(novo->nome, nome); // Copia a string para a struct
+        novo->uc = uc;
         novo->proximo = NULL;
     }
     return novo;
 }
 
-void inscrever_uc(UC **cabeca, int codigo, char *nome) {
-    UC *novo = criar_no_uc(codigo, nome);
+void inscrever_uc(NoUC** cabeca, UC uc) {
+    NoUC* novo = criar_no_uc(uc);
     if (novo) {
-        novo->proximo = *cabeca; // Insere no início da lista
+        novo->proximo = *cabeca;
         *cabeca = novo;
     }
 }

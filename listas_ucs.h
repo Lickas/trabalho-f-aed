@@ -1,13 +1,14 @@
 #ifndef LISTA_UCS_H
 #define LISTA_UCS_H
 
-typedef struct UC {
-    int codigo;
-    char nome[50];
-    struct UC *proximo;
-} UC;
+#include "aluno.h"
 
-// Protótipos das funções
-UC* criar_no_uc(int codigo, char *nome);
-void inscrever_uc(UC **cabeca, int codigo, char *nome);
+typedef struct NoUC {
+    UC uc;
+    struct NoUC* proximo;
+} NoUC;
+
+NoUC* criar_no_uc(UC uc);
+void inscrever_uc(NoUC** cabeca, UC uc);
+
 #endif
