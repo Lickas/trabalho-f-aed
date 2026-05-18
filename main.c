@@ -24,9 +24,11 @@ NoUC* lista_ucs = NULL;
 FilaSecretaria fila;
 AlunoRanking ranking[MAX_ALUNOS];
 
+// verifica se uma disciplina (UC) já existe na lista procurando pelo código dela
 int uc_existe(char* codigo) {
     NoUC* atual = lista_ucs;
     while (atual != NULL) {
+        // compara as strings para ver se os códigos são iguais
         if (strcmp(atual->uc.codigo, codigo) == 0) {
             return 1;
         }
@@ -37,6 +39,7 @@ int uc_existe(char* codigo) {
 
 // ==================== ALUNOS ====================
 
+// pede os dados ao utilizador e guarda um aluno novo no sistema
 void adicionar_aluno() {
     if (total_alunos >= MAX_ALUNOS) {
         printf("Numero maximo de alunos atingido!\n");
@@ -55,6 +58,7 @@ void adicionar_aluno() {
     a.media = 0.0;
     a.total_notas = 0;
 
+    // adiciona o aluno ao array principal, à árvore e à tabela de hash para ser mais fácil pesquisar depois
     alunos[total_alunos++] = a;
     raiz_bst = bst_inserir(raiz_bst, a);
     hash_inserir(&tabela, a);
@@ -65,6 +69,7 @@ void adicionar_aluno() {
     printf("Aluno adicionado com sucesso!\n");
 }
 
+// procura um aluno pelo número e apaga-o de todas as estruturas de dados
 void remover_aluno() {
     int numero;
     printf("Numero mecanografico a remover: ");
@@ -84,6 +89,7 @@ void remover_aluno() {
 
     for (int i = 0; i < total_alunos; i++) {
         if (alunos[i].numero == numero) {
+            // puxa todos os alunos seguintes uma posição para trás no array para tapar o buraco do aluno apagado
             for (int j = i; j < total_alunos - 1; j++) {
                 alunos[j] = alunos[j+1];
             }
@@ -98,6 +104,7 @@ void remover_aluno() {
     printf("Aluno removido com sucesso!\n");
 }
 
+// usa a árvore para tentar encontrar e mostrar os dados de um aluno específico
 void pesquisar_aluno() {
     int numero;
     printf("Numero mecanografico a pesquisar: ");
@@ -111,6 +118,7 @@ void pesquisar_aluno() {
     }
 }
 
+// mostra todos os alunos que temos guardados, usando a árvore para imprimir por ordem
 void listar_alunos() {
     printf("\n=== LISTA DE ALUNOS ===\n");
     if (total_alunos == 0) {
@@ -122,6 +130,7 @@ void listar_alunos() {
 
 // ==================== UCs ====================
 
+// regista uma nova cadeira preenchendo os dados e guardando na lista ligada
 void adicionar_uc() {
     UC uc;
     printf("Codigo da UC (ex: AED): ");
@@ -142,6 +151,7 @@ void adicionar_uc() {
     printf("UC adicionada com sucesso!\n");
 }
 
+// percorre a lista de cadeiras do início ao fim e imprime a informação de cada uma
 void listar_ucs() {
     printf("\n=== LISTA DE UCs ===\n");
     if (lista_ucs == NULL) {
@@ -161,6 +171,7 @@ void listar_ucs() {
 
 // ==================== AVALIAÇÕES ====================
 
+// associa uma nota a um aluno numa certa cadeira e recalcula a média dele
 void registar_nota() {
     int numero;
     char codigo_uc[15];
@@ -178,6 +189,7 @@ void registar_nota() {
     printf("Codigo da UC: ");
     scanf(" %[^\n]", codigo_uc);
 
+    // confirma primeiro se a cadeira existe mesmo antes de tentar dar a nota
     if (!uc_existe(codigo_uc)) {
         printf("UC %s nao existe! Adicione a UC primeiro.\n", codigo_uc);
         return;
@@ -202,6 +214,7 @@ void registar_nota() {
     for (int i = 0; i < resultado->aluno.total_notas; i++) {
         soma += resultado->aluno.notas[i];
     }
+    // faz a média aritmética simples com todas as notas que o aluno já tem
     resultado->aluno.media = soma / resultado->aluno.total_notas;
 
     for (int i = 0; i < total_alunos; i++) {
@@ -210,6 +223,7 @@ void registar_nota() {
             break;
         }
     }
+    // tira o aluno desatualizado da hash e volta a meter com a média nova
     hash_remover(&tabela, numero);
     hash_inserir(&tabela, resultado->aluno);
 
@@ -221,6 +235,7 @@ void registar_nota() {
 
 // ==================== RANKINGS ====================
 
+// cria um ranking com as melhores médias usando a estrutura heap
 void ver_ranking() {
     if (total_alunos == 0) {
         printf("Nao existem alunos registados!\n");
@@ -236,11 +251,13 @@ void ver_ranking() {
         ranking[i].media = alunos[i].media;
     }
 
+    // chama a função que constrói o max heap e tira de lá os melhores
     imprimir_top_n(ranking, total_alunos, top);
 }
 
 // ==================== PEDIDOS ADMINISTRATIVOS ====================
 
+// mete um novo pedido no fim da fila de espera da secretaria
 void adicionar_pedido() {
     int id;
     printf("ID do pedido: ");
@@ -249,12 +266,14 @@ void adicionar_pedido() {
     printf("Pedido %d adicionado a fila!\n", id);
 }
 
+// tira e resolve o pedido que estava há mais tempo à espera na fila
 void atender_pedido() {
     desenfileirar(&fila);
 }
 
 // ==================== HISTÓRICO ====================
 
+// funciona como um Ctrl+Z, lê a última coisa que fizemos na pilha e faz o inverso
 void desfazer_operacao() {
     if (pilha_vazia(&pilha)) {
         printf("Nao ha operacoes para desfazer!\n");
@@ -270,6 +289,7 @@ void desfazer_operacao() {
             hash_remover(&tabela, topo->aluno.numero);
             for (int i = 0; i < total_alunos; i++) {
                 if (alunos[i].numero == topo->aluno.numero) {
+                    // como a última operação foi inserir, o desfazer é apagar o aluno puxando os outros para trás no array
                     for (int j = i; j < total_alunos - 1; j++) {
                         alunos[j] = alunos[j+1];
                     }
@@ -291,6 +311,7 @@ void desfazer_operacao() {
             for (int i = 0; i < total_alunos; i++) {
                 if (alunos[i].numero == topo->aluno.numero) {
                     alunos[i] = topo->aluno;
+                    // substitui o aluno atual pelo aluno antigo (que guardamos antes da nota) na árvore e na hash
                     raiz_bst = bst_remover(raiz_bst, topo->aluno.numero);
                     raiz_bst = bst_inserir(raiz_bst, topo->aluno);
                     hash_remover(&tabela, topo->aluno.numero);
@@ -316,6 +337,7 @@ void desfazer_operacao() {
 
 // ==================== MENU ====================
 
+// mostra as opções todas que podemos escolher no ecrã
 void menu() {
     printf("\n==============================\n");
     printf(" SISTEMA DE GESTAO ACADEMICA\n");
@@ -343,6 +365,7 @@ void menu() {
     printf("\nOpcao: ");
 }
 
+// ponto de entrada do programa, inicializa as coisas e fica à espera que o utilizador escolha o que fazer
 int main() {
     hash_inicializar(&tabela);
     pilha.topo = NULL;
@@ -352,6 +375,7 @@ int main() {
 
     do {
         menu();
+        // limpa o buffer do teclado se o utilizador escrever letras em vez de números para o menu não bugar
         if (scanf("%d", &opcao) != 1) {
             printf("Entrada invalida!\n");
             while (getchar() != '\n');
@@ -377,9 +401,10 @@ int main() {
                     hash_inicializar(&tabela);
                      // insere cada aluno carregado na BST e hash
                     for (int i = 0; i < total_alunos; i++) {
+                    // como carregamos do ficheiro para o array, temos de voltar a construir a árvore e a hash do zero
                     raiz_bst = bst_inserir(raiz_bst, alunos[i]);
                      hash_inserir(&tabela, alunos[i]);
-                        }
+                         }
                     printf("Estruturas atualizadas com sucesso!\n");
                      break;
             case 13: desfazer_operacao(); break;

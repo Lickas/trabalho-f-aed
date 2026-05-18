@@ -1,8 +1,10 @@
 #include "ranking_heap.h"
 #include <stdio.h>
 
+// empurra o aluno com média mais baixa para baixo para manter a árvore organizada (max heap)
 void heapify(AlunoRanking heap[], int n, int i) {
     int maior = i;
+    // faz as contas matemáticas para descobrir onde estão os filhos esquerdo e direito na lista
     int esq = 2 * i + 1;
     int dir = 2 * i + 2;
 
@@ -13,10 +15,12 @@ void heapify(AlunoRanking heap[], int n, int i) {
         AlunoRanking temp = heap[i];
         heap[i] = heap[maior];
         heap[maior] = temp;
+        // como houve trocas, chamamos a função outra vez para rever a árvore para baixo
         heapify(heap, n, maior);
     }
 }
 
+// pega num array normal e transforma-o numa árvore max heap (os maiores em cima)
 void construir_heap(AlunoRanking heap[], int n) {
     // começa a meio e vai para trás
     // os nós a partir de n/2 são folhas, não precisam de heapify
@@ -25,6 +29,7 @@ void construir_heap(AlunoRanking heap[], int n) {
     }
 }
 
+// organiza o heap e imprime apenas os melhores alunos que pedimos
 void imprimir_top_n(AlunoRanking heap[], int n, int top) {
     construir_heap(heap, n);
     printf("\n=== TOP %d ALUNOS ===\n", top);
