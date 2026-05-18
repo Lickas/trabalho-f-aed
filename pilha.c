@@ -1,6 +1,7 @@
 #include "pilha.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 // =============================================================
 // Ficheiro: pilha.c
@@ -8,20 +9,22 @@
 // Autor: Leandro
 // =============================================================
 
-void pilha_push(Pilha* pilha, const char* operacao) {
-    NoPilha* novo_no = (NoPilha*)malloc(sizeof(NoPilha));
-    if (novo_no == NULL) {
-        fprintf(stderr, "Erro ao alocar memória para a pilha.\n"); //stderr para mensagens de erro, separando de mensagens normais
+void pilha_push_op(Pilha* pilha, TipoOperacao tipo, Aluno aluno, const char* descricao) {
+    NoPilha* novo = (NoPilha*)malloc(sizeof(NoPilha));
+    if (novo == NULL) {
+        fprintf(stderr, "Erro ao alocar memoria!\n");
         return;
     }
-    snprintf(novo_no->operacao, sizeof(novo_no->operacao), "%s", operacao);
-    novo_no->baixo = pilha->topo;
-    pilha->topo = novo_no;
+    novo->tipo = tipo;
+    novo->aluno = aluno;
+    snprintf(novo->descricao, sizeof(novo->descricao), "%s", descricao);
+    novo->baixo = pilha->topo;
+    pilha->topo = novo;
 }
 
 void pilha_pop(Pilha* pilha) {
     if (pilha_vazia(pilha)) {
-        fprintf(stderr, "Pilha vazia. Não é possível realizar pop.\n");
+        fprintf(stderr, "Pilha vazia!\n");
         return;
     }
     NoPilha* temp = pilha->topo;
@@ -31,10 +34,10 @@ void pilha_pop(Pilha* pilha) {
 
 void pilha_peek(Pilha* pilha) {
     if (pilha_vazia(pilha)) {
-        fprintf(stderr, "Pilha vazia. Não é possível realizar peek.\n");
+        fprintf(stderr, "Pilha vazia!\n");
         return;
     }
-    printf("Operação no topo da pilha: %s\n", pilha->topo->operacao);
+    printf("Ultima operacao: %s\n", pilha->topo->descricao);
 }
 
 int pilha_vazia(Pilha* pilha) {

@@ -24,6 +24,17 @@ NoUC* lista_ucs = NULL;
 FilaSecretaria fila;
 AlunoRanking ranking[MAX_ALUNOS];
 
+int uc_existe(char* codigo) {
+    NoUC* atual = lista_ucs;
+    while (atual != NULL) {
+        if (strcmp(atual->uc.codigo, codigo) == 0) {
+            return 1;
+        }
+        atual = atual->proximo;
+    }
+    return 0;
+}
+
 // ==================== ALUNOS ====================
 
 void adicionar_aluno() {
@@ -42,14 +53,14 @@ void adicionar_aluno() {
     printf("Ano: ");
     scanf("%d", &a.ano);
     a.media = 0.0;
+    a.total_notas = 0;
 
     alunos[total_alunos++] = a;
     raiz_bst = bst_inserir(raiz_bst, a);
     hash_inserir(&tabela, a);
 
-    char operacao[100];
-    snprintf(operacao, sizeof(operacao), "Inseriu aluno %d - %s", a.numero, a.nome);
-    pilha_push(&pilha, operacao);
+    // guarda na pilha para poder desfazer
+    pilha_push_op(&pilha, OP_INSERIR_ALUNO, a, "Inseriu aluno");
 
     printf("Aluno adicionado com sucesso!\n");
 }
@@ -59,10 +70,18 @@ void remover_aluno() {
     printf("Numero mecanografico a remover: ");
     scanf("%d", &numero);
 
+    // guarda o aluno ANTES de remover para poder desfazer
+    Aluno aluno_removido = {0};
+    for (int i = 0; i < total_alunos; i++) {
+        if (alunos[i].numero == numero) {
+            aluno_removido = alunos[i];
+            break;
+        }
+    }
+
     raiz_bst = bst_remover(raiz_bst, numero);
     hash_remover(&tabela, numero);
 
-    // remove do array também
     for (int i = 0; i < total_alunos; i++) {
         if (alunos[i].numero == numero) {
             for (int j = i; j < total_alunos - 1; j++) {
@@ -73,9 +92,8 @@ void remover_aluno() {
         }
     }
 
-    char operacao[100];
-    snprintf(operacao, sizeof(operacao), "Removeu aluno %d", numero);
-    pilha_push(&pilha, operacao);
+    // guarda na pilha para poder desfazer
+    pilha_push_op(&pilha, OP_REMOVER_ALUNO, aluno_removido, "Removeu aluno");
 
     printf("Aluno removido com sucesso!\n");
 }
@@ -117,9 +135,9 @@ void adicionar_uc() {
 
     inscrever_uc(&lista_ucs, uc);
 
-    char operacao[100];
-    snprintf(operacao, sizeof(operacao), "Adicionou UC %s - %s", uc.codigo, uc.nome);
-    pilha_push(&pilha, operacao);
+    // guarda na pilha para poder desfazer
+    Aluno vazio = {0};
+    pilha_push_op(&pilha, OP_ADICIONAR_UC, vazio, "Adicionou UC");
 
     printf("UC adicionada com sucesso!\n");
 }
@@ -160,7 +178,6 @@ void registar_nota() {
     printf("Codigo da UC: ");
     scanf(" %[^\n]", codigo_uc);
 
-    // Bug 2 — verifica se UC existe
     if (!uc_existe(codigo_uc)) {
         printf("UC %s nao existe! Adicione a UC primeiro.\n", codigo_uc);
         return;
@@ -174,7 +191,9 @@ void registar_nota() {
         return;
     }
 
-    // Bug 3 — calcula média real
+    // guarda o aluno ANTES da nota para poder desfazer
+    Aluno aluno_antes = resultado->aluno;
+
     if (resultado->aluno.total_notas < 20) {
         resultado->aluno.notas[resultado->aluno.total_notas++] = nota;
     }
@@ -185,7 +204,6 @@ void registar_nota() {
     }
     resultado->aluno.media = soma / resultado->aluno.total_notas;
 
-    // atualiza no array e na hash
     for (int i = 0; i < total_alunos; i++) {
         if (alunos[i].numero == numero) {
             alunos[i] = resultado->aluno;
@@ -195,9 +213,8 @@ void registar_nota() {
     hash_remover(&tabela, numero);
     hash_inserir(&tabela, resultado->aluno);
 
-    char operacao[100];
-    snprintf(operacao, sizeof(operacao), "Registou nota %.1f ao aluno %d em %s", nota, numero, codigo_uc);
-    pilha_push(&pilha, operacao);
+    // guarda na pilha para poder desfazer
+    pilha_push_op(&pilha, OP_REGISTAR_NOTA, aluno_antes, "Registou nota");
 
     printf("Nota registada! Media atual: %.2f\n", resultado->aluno.media);
 }
@@ -214,7 +231,6 @@ void ver_ranking() {
     printf("Quantos alunos quer ver no ranking? ");
     scanf("%d", &top);
 
-    // copia os alunos para o array de ranking
     for (int i = 0; i < total_alunos; i++) {
         ranking[i].num_mecanografico = alunos[i].numero;
         ranking[i].media = alunos[i].media;
@@ -230,7 +246,7 @@ void adicionar_pedido() {
     printf("ID do pedido: ");
     scanf("%d", &id);
     enfileirar(&fila, id);
-    printf("Pedido %d adicionado à fila!\n", id);
+    printf("Pedido %d adicionado a fila!\n", id);
 }
 
 void atender_pedido() {
@@ -244,9 +260,58 @@ void desfazer_operacao() {
         printf("Nao ha operacoes para desfazer!\n");
         return;
     }
-    pilha_peek(&pilha);
+
+    NoPilha* topo = pilha.topo;
+    printf("A desfazer: %s\n", topo->descricao);
+
+    switch(topo->tipo) {
+        case OP_INSERIR_ALUNO:
+            raiz_bst = bst_remover(raiz_bst, topo->aluno.numero);
+            hash_remover(&tabela, topo->aluno.numero);
+            for (int i = 0; i < total_alunos; i++) {
+                if (alunos[i].numero == topo->aluno.numero) {
+                    for (int j = i; j < total_alunos - 1; j++) {
+                        alunos[j] = alunos[j+1];
+                    }
+                    total_alunos--;
+                    break;
+                }
+            }
+            printf("Aluno %d removido!\n", topo->aluno.numero);
+            break;
+
+        case OP_REMOVER_ALUNO:
+            alunos[total_alunos++] = topo->aluno;
+            raiz_bst = bst_inserir(raiz_bst, topo->aluno);
+            hash_inserir(&tabela, topo->aluno);
+            printf("Aluno %d reinserido!\n", topo->aluno.numero);
+            break;
+
+        case OP_REGISTAR_NOTA:
+            for (int i = 0; i < total_alunos; i++) {
+                if (alunos[i].numero == topo->aluno.numero) {
+                    alunos[i] = topo->aluno;
+                    raiz_bst = bst_remover(raiz_bst, topo->aluno.numero);
+                    raiz_bst = bst_inserir(raiz_bst, topo->aluno);
+                    hash_remover(&tabela, topo->aluno.numero);
+                    hash_inserir(&tabela, topo->aluno);
+                    break;
+                }
+            }
+            printf("Nota desfeita!\n");
+            break;
+
+        case OP_ADICIONAR_UC:
+            if (lista_ucs != NULL) {
+                NoUC* temp = lista_ucs;
+                lista_ucs = lista_ucs->proximo;
+                free(temp);
+            }
+            printf("UC removida!\n");
+            break;
+    }
+
     pilha_pop(&pilha);
-    printf("Operacao desfeita!\n");
 }
 
 // ==================== MENU ====================
@@ -305,7 +370,18 @@ int main() {
             case 9:  adicionar_pedido(); break;
             case 10: atender_pedido(); break;
             case 11: guardar_alunos(alunos, total_alunos); break;
-            case 12: total_alunos = carregar_alunos(alunos); break;
+            case 12:
+                    total_alunos = carregar_alunos(alunos);
+                     // reinicia a BST e hash
+                    raiz_bst = NULL;
+                    hash_inicializar(&tabela);
+                     // insere cada aluno carregado na BST e hash
+                    for (int i = 0; i < total_alunos; i++) {
+                    raiz_bst = bst_inserir(raiz_bst, alunos[i]);
+                     hash_inserir(&tabela, alunos[i]);
+                        }
+                    printf("Estruturas atualizadas com sucesso!\n");
+                     break;
             case 13: desfazer_operacao(); break;
             case 0:  printf("A sair...\n"); break;
             default: printf("Opcao invalida!\n");
